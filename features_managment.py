@@ -51,11 +51,11 @@ def opcodes_analysis(androguard_apk):
     except (struct.error, KeyError, ValueError, AttributeError) as e:
         # Catch unpack error (buffer short) or KeyError (opcode 255 invalid)
         if "unpack requires a string argument" in str(e) or "KeyError: 255" in str(e):
-            print(f"Skipping opcode analysis for corrupted APK: {androguard_apk.get_package()}")
+            print "Skipping opcode analysis for corrupted APK: {androguard_apk.get_package()}"
             return {}  # Return empty dict to avoid crash
         raise e  # Re-raise other errors
     except Exception as e:
-        print(f"Unexpected error in opcodes_analysis: {e}")
+        print "Unexpected error in opcodes_analysis: {e}"
         return {}  # Fallback for other issues
 
 
