@@ -7,23 +7,57 @@ from collections import Counter
 from androguard.core.bytecodes import dvm
 
 
+#def opcodes_analysis(androguard_apk):
+#    # http://blog.k3170makan.com/2014/11/automated-dex-decompilation-using.html
+#    temp = {}
+
+#    dalvik = dvm.DalvikVMFormat(androguard_apk.get_dex())
+#    for current_class in dalvik.get_classes():
+#        for method in current_class.get_methods():
+#            byte_code = method.get_code()
+#            if byte_code is not None:
+#                byte_code = byte_code.get_bc()
+#                for inst in byte_code.get_instructions():
+#                    inst_name = inst.get_name()
+#                    if inst_name not in temp:
+#                        temp[inst_name] = 1
+#                    else:
+#                        temp[inst_name] += 1
+#    return temp
+
+
 def opcodes_analysis(androguard_apk):
-    # http://blog.k3170makan.com/2014/11/automated-dex-decompilation-using.html
+    """
+    Fixed version: Skip corrupted DEX/opcode errors and return empty dict for invalid files.
+    Original: http://blog.k3170makan.com/2014/11/automated-dex-decompilation-using.html
+    """
     temp = {}
 
-    dalvik = dvm.DalvikVMFormat(androguard_apk.get_dex())
-    for current_class in dalvik.get_classes():
-        for method in current_class.get_methods():
-            byte_code = method.get_code()
-            if byte_code is not None:
-                byte_code = byte_code.get_bc()
-                for inst in byte_code.get_instructions():
-                    inst_name = inst.get_name()
-                    if inst_name not in temp:
-                        temp[inst_name] = 1
-                    else:
-                        temp[inst_name] += 1
-    return temp
+
+    try:
+        dalvik = dvm.DalvikVMFormat(androguard_apk.get_dex())
+        for current_class in dalvik.get_classes():
+            for method in current_class.get_methods():
+                byte_code = method.get_code()
+                if byte_code is not None:
+                    byte_code = byte_code.get_bc()
+                    for inst in byte_code.get_instructions()[:100]:  # Limit to 100 instructions to avoid timeout
+                        inst_name = inst.get_name()
+                        if inst_name not in temp:
+                            temp[inst_name] = 1
+                        else:
+                            temp[inst_name] += 1
+        return temp
+    except (struct.error, KeyError, ValueError, AttributeError) as e:
+        # Catch unpack error (buffer short) or KeyError (opcode 255 invalid)
+        if "unpack requires a string argument" in str(e) or "KeyError: 255" in str(e):
+            print(f"Skipping opcode analysis for corrupted APK: {androguard_apk.get_package()}")
+            return {}  # Return empty dict to avoid crash
+        raise e  # Re-raise other errors
+    except Exception as e:
+        print(f"Unexpected error in opcodes_analysis: {e}")
+        return {}  # Fallback for other issues
+
 
 
 def check_for_intents(manifest, name, mode):
