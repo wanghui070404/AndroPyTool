@@ -1,3 +1,4 @@
+import struct 
 import re
 import os
 import lxml.etree as et
